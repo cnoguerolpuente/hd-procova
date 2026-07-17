@@ -1,10 +1,12 @@
-# hd-procova
+# PROCOVA for Huntington's Disease
 
 Prognostic covariate adjustment pipeline for Huntington's Disease clinical trial design.
 
 This pipeline trains machine learning models on longitudinal data to predict individual disease progression rates, which can then be used as prognostic covariates in clinical trial analysis frameworks (e.g., MMRM) to improve statistical power.
 
 ## Method
+
+![Pipeline overview](images/pipeline.png)
 
 **Stage 1 — Hierarchical Bayesian Model (HBM):**
 Fits a random-slope linear mixed model via MCMC (PyMC/NumPyro) to extract per-patient progression rates (beta) from longitudinal clinical scores.
@@ -95,13 +97,3 @@ python scripts/train_final.py
 - See `pyproject.toml` for full dependency list
 
 GPU acceleration (optional): Install JAX with CUDA support for 10-20x faster MCMC sampling.
-
-## Citation
-
-If you use this code, please cite:
-
-> [TODO: Add citation]
-
-## License
-
-[TODO: Add license]

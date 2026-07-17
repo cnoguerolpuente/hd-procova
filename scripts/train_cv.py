@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Cross-Validation Pipeline: HBM + ML Models on Simulated Data
+Cross-Validation Pipeline: HBM + ML Models 
 =============================================================
 Two-stage pipeline for predicting individual progression rates:
 
 Stage 1 - Hierarchical Bayesian Model (HBM):
     Fit a random-slope model via MCMC to extract per-patient
-    progression rates (beta) from longitudinal scores.
+    progression rates from longitudinal scores.
 
 Stage 2 - Machine Learning Models:
-    Train supervised regressors to predict beta from baseline covariates.
+    Train supervised regressors to predict the progression rates from baseline covariates.
 
 Usage:
     python scripts/train_cv.py <fold_idx>

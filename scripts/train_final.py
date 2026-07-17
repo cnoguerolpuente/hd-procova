@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Final Model Training: HBM + ML on Full Simulated Data
+Final Model Training
 ======================================================
 Trains production-ready models on the full training set and evaluates
 on the held-out test set.
