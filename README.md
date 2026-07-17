@@ -6,13 +6,13 @@ This pipeline trains machine learning models on longitudinal data to predict ind
 
 ## Method
 
-![Pipeline overview](images/pipeline.png)
-
 **Stage 1 — Hierarchical Bayesian Model (HBM):**
 Fits a random-slope linear mixed model via MCMC (PyMC/NumPyro) to extract per-patient progression rates (beta) from longitudinal clinical scores.
 
 **Stage 2 — Machine Learning Models:**
 Trains 9 supervised regressors (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) plus a full Bayesian model to predict beta from baseline covariates. Hyperparameters are tuned via Optuna with precision-weighted cross-validation.
+
+![Pipeline overview](images/pipeline.png)
 
 ## Quick start
 
