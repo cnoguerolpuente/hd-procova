@@ -7,10 +7,10 @@ This pipeline trains machine learning models on longitudinal data to predict ind
 ## Method
 
 **Stage 1 — Hierarchical Bayesian Model (HBM):**
-Fits a random-slope linear mixed model via MCMC (PyMC/NumPyro) to extract per-patient progression rates (beta) from longitudinal clinical scores.
+fits a random-slope linear mixed model via MCMC (PyMC/NumPyro) to extract per-patient progression rates from longitudinal clinical scores.
 
 **Stage 2 — Machine Learning Models:**
-Trains 9 supervised regressors (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) plus a full Bayesian model to predict beta from baseline covariates. Hyperparameters are tuned via Optuna with precision-weighted cross-validation.
+trains 9 supervised regressors (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) to predict the estimated progression rate from baseline covariates. Hyperparameters are tuned via Optuna with precision-weighted cross-validation.
 
 ![Pipeline overview](images/pipeline.png)
 
@@ -46,9 +46,8 @@ hd-procova/
 │   ├── generate_data.py # Generate simulated train/test datasets
 │   ├── train_cv.py      # 10x10 repeated cross-validation pipeline
 │   └── train_final.py   # Final model training on full data
-├── notebooks/
-│   └── figures.ipynb    # Result visualizations
-└── data/                # Generated data (gitignored)
+└── notebooks/
+    └── figures.ipynb    # Result visualizations
 ```
 
 ## Data simulation
