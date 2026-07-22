@@ -24,10 +24,10 @@ import gc
 import json
 import sys
 import time
-import traceback
+
 from typing import Dict, List
 
-import arviz as az
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -46,7 +46,6 @@ from src.hbm import (
     check_convergence,
     fit_hierarchical_bayesian,
     save_hbm_convergence_plot,
-    train_full_hbm_with_covariates,
 )
 from src.ml import (
     analyze_feature_importance,
@@ -162,44 +161,7 @@ def main(fold_idx: int = 0) -> None:
     raw_covariate_cols: List[str] = covariate_cols.copy()
     patient_level_train = train_data.groupby("id").first()
 
-    # --- Full HBM with covariates ---
-    print("\n" + "=" * 60)
-    print("MODEL: HIERARCHICAL (Full Bayesian with Covariates)")
-    print("=" * 60)
-
     model_times: Dict[str, float] = {}
-    start_hbm = time.time()
-
-    try:
-        hierarchical_results, hierarchical_trace, hierarchical_importance = (
-            train_full_hbm_with_covariates(
-                train_data, test_data, covariate_cols, scalers,
-                random_state=random_state,
-            )
-        )
-
-        hierarchical_dir = os.path.join(CONFIG["output_dir"], "training", "hierarchical")
-        os.makedirs(hierarchical_dir, exist_ok=True)
-
-        pd.DataFrame(hierarchical_results).to_csv(
-            f"{hierarchical_dir}/results_fold_{fold_idx + 1}.csv", index=False
-        )
-        hierarchical_importance.to_csv(
-            f"{hierarchical_dir}/importance_fold_{fold_idx + 1}.csv", index=False
-        )
-        save_hbm_convergence_plot(hierarchical_trace, hierarchical_dir, fold_idx + 1)
-
-        actual = np.array(hierarchical_results["actual_change"])
-        predicted = np.array(hierarchical_results["predicted_change"])
-        print(
-            f"HBM Validation — Corr: {np.corrcoef(actual, predicted)[0,1]:.4f}, "
-            f"RMSE: {np.sqrt(mean_squared_error(actual, predicted)):.4f}"
-        )
-
-        model_times["hierarchical"] = time.time() - start_hbm
-
-    except Exception:
-        print(f"Full HBM failed:\n{traceback.format_exc()}")
 
     # --- Sklearn ML models ---
     for model_idx, model_config in MODEL_MAP.items():

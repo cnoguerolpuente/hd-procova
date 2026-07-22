@@ -30,7 +30,6 @@ MODEL_MAP = {
     7: {"class": XGBRegressor, "name": "xgboost"},
     8: {"class": LGBMRegressor, "name": "lightgbm"},
     9: {"class": HistGradientBoostingRegressor, "name": "histgradientboosting"},
-    10: {"class": None, "name": "hierarchical"},
 }
 
 

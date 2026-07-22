@@ -17,10 +17,10 @@ import gc
 import json
 import sys
 import time
-import traceback
+
 from typing import Dict, List
 
-import arviz as az
+
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -39,7 +39,6 @@ from src.hbm import (
     check_convergence,
     fit_hierarchical_bayesian,
     save_hbm_convergence_plot,
-    train_full_hbm_with_covariates,
 )
 from src.ml import (
     analyze_feature_importance,
@@ -136,38 +135,6 @@ def train_final_model() -> Dict[str, pd.DataFrame]:
 
     all_results: Dict[str, pd.DataFrame] = {}
     model_times: Dict[str, float] = {}
-
-    # --- Full HBM with covariates ---
-    print("\n" + "=" * 60)
-    print("MODEL: HIERARCHICAL (Full Bayesian with Covariates)")
-    print("=" * 60)
-
-    start_hbm = time.time()
-    try:
-        hier_results, hier_trace, hier_importance = train_full_hbm_with_covariates(
-            train_data, test_data, covariate_cols, scalers,
-            random_state=random_state,
-            hbm_samples=HBM_SAMPLES, hbm_tune=HBM_TUNE,
-            hbm_chains=HBM_CHAINS, hbm_cores=1,
-        )
-
-        hier_dir = os.path.join(CONFIG["output_dir"], "final", "hierarchical")
-        os.makedirs(hier_dir, exist_ok=True)
-        pd.DataFrame(hier_results).to_csv(f"{hier_dir}/predictions.csv", index=False)
-        hier_importance.to_csv(f"{hier_dir}/importance.csv", index=False)
-        save_hbm_convergence_plot(hier_trace, hier_dir)
-
-        if "actual_change" in hier_results:
-            actual = np.array(hier_results["actual_change"])
-            predicted = np.array(hier_results["predicted_change"])
-            print(f"HBM Validation — Corr: {np.corrcoef(actual, predicted)[0,1]:.4f}, "
-                  f"RMSE: {np.sqrt(mean_squared_error(actual, predicted)):.4f}")
-
-        all_results["hierarchical"] = pd.DataFrame(hier_results)
-        model_times["hierarchical"] = time.time() - start_hbm
-
-    except Exception:
-        print(f"Full HBM failed:\n{traceback.format_exc()}")
 
     # --- Sklearn models ---
     for model_idx, model_config in MODEL_MAP.items():
