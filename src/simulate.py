@@ -36,7 +36,7 @@ def generate_covariates(
     n_individuals: int,
     n_irrelevant: int = 30,
     n_relevant: int = 20,
-    beta_range: Tuple[float, float] = (0.01, 0.20),
+    beta_range: Tuple[float, float] = (0.02, 0.25),
 ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     beta_irrelevant = np.zeros(n_irrelevant)
     beta_relevant = np.linspace(beta_range[0], beta_range[1], n_relevant)
@@ -83,7 +83,7 @@ def create_simulated_dataset(
     max_timepoints: int = 10,
     n_irrelevant: int = 30,
     n_relevant: int = 20,
-    beta_range: Tuple[float, float] = (0.01, 0.20),
+    beta_range: Tuple[float, float] = (0.02, 0.25),
 ) -> pd.DataFrame:
     id_array, x0_array, t_array, n_timepoints = generate_longitudinal_structure(
         n_individuals, min_timepoints, max_timepoints

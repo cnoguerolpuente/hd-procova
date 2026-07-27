@@ -52,11 +52,22 @@ hd-procova/
 
 ## Data simulation
 
-The simulated data mimics the structure of longitudinal clinical trial data:
-- `n` individuals with varying numbers of follow-up visits
-- Baseline score (`x0`) and longitudinal scores (`x`)
-- 50 baseline covariates: 20 with true prognostic effects, 30 irrelevant
-- Individual progression rates driven by covariates + random effects + noise
+The simulated data mimics the structure of longitudinal clinical trial data. Each individual *i* has a random number of follow-up visits (1–10) and a baseline score *x₀ᵢ* drawn uniformly from {0, …, 20}.
+
+### Generative model
+
+The observed score at time *t* is:
+
+```
+xᵢₜ = x₀ᵢ + rᵢ · t + εᵢₜ
+```
+
+where:
+
+- **Progression rate:** `rᵢ = β₀ᵢ + Zᵢ · β`, with `β₀ᵢ ~ N(0, 1)` capturing unexplained individual variation.
+- **Covariates:** `Zᵢ ~ N(0, I₅₀)`, 50 baseline covariates per individual.
+- **Covariate effects:** 30 covariates are irrelevant (`β = 0`); the remaining 20 have effects linearly spaced from 0.02 to 0.25.
+- **Observation noise:** `εᵢₜ ~ N(0, 1)`, independent across visits.
 
 ```python
 from src.simulate import create_simulated_dataset
