@@ -7,10 +7,10 @@ This pipeline trains machine learning models on longitudinal data to predict ind
 ## Method
 
 **Stage 1 — Hierarchical Bayesian Model (HBM):**
-fits a random-slope linear mixed model via MCMC (PyMC/NumPyro) to extract per-patient progression rates from longitudinal clinical scores.
+fits a random-slope linear mixed model via MCMC (PyMC/NumPyro) to extract per-patient progression rates from longitudinal clinical scores. Sampling uses NUTS (500 draws, 500 tuning steps, 2 chains, target acceptance 0.8). Convergence is verified via R-hat (< 1.05) and bulk ESS (> 400).
 
 **Stage 2 — Machine Learning Models:**
-trains 9 supervised regressors (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) to predict the estimated progression rate from baseline covariates. Hyperparameters are tuned via Optuna with precision-weighted cross-validation.
+trains 9 supervised regressors (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) to predict the estimated progression rate from baseline covariates. Hyperparameters are tuned via Optuna (30 trials, 5-fold inner CV, MSE scoring).
 
 ![Pipeline overview](images/pipeline.png)
 
@@ -54,8 +54,6 @@ hd-procova/
 
 The simulated data mimics the structure of longitudinal clinical trial data. Each individual *i* has a random number of follow-up visits (1–10) and a baseline score *x₀ᵢ* drawn uniformly from {0, …, 20}.
 
-### Generative model
-
 The observed score at time *t* is:
 
 ```
@@ -78,7 +76,7 @@ df = create_simulated_dataset(n_individuals=1000)
 
 ### Cross-validation (`train_cv.py`)
 
-Implements 10x10 repeated cross-validation (10 repetitions of 10-fold outer CV). Each fold:
+Implements 10x10 repeated cross-validation (10 repetitions of 10-fold outer CV) on 800 training individuals (200 held out as final test set). Each fold:
 1. Splits patients into train/validation (patient-level, no leakage)
 2. Fits the HBM on training patients to extract progression rates
 3. Trains all ML models with Optuna hyperparameter tuning (5-fold inner CV)
