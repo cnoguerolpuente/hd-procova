@@ -4,9 +4,9 @@ This pipeline trains machine learning models on longitudinal data to predict ind
 
 ## How it works
 
-**Step 1 — Estimate progression rates.** A hierarchical Bayesian model fits each patient's longitudinal clinical scores to extract a per-patient annual progression rate.
+**Step 1 - Estimate progression rates.** Fits a hierarchical Bayesian model to extract a per-patient annual progression rate.
 
-**Step 2 — Predict progression rates from baseline.** Nine Machine Learning regressors (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) are trained to predict those rates using only baseline covariates.
+**Step 2 - Predict progression rates from baseline.** Trains nine Machine Learning models (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) to predict those rates using only baseline covariates.
 
 ![Pipeline overview](images/pipeline.png)
 
@@ -47,11 +47,11 @@ python scripts/train_final.py
 ```
 hd-procova/
 ├── src/
-│   ├── config.py        # model registry, hyperparameter spaces, global config
+│   ├── config.py        # project configuration
 │   ├── simulate.py      # simulated data generation
 │   ├── data.py          # loading, scaling, preprocessing
-│   ├── hbm.py           # hierarchical Bayesian model (PyMC/MCMC)
-│   └── ml.py            # ML training, Optuna tuning, feature importance
+│   ├── hbm.py           # hierarchical Bayesian model
+│   └── ml.py            # ML training
 ├── scripts/
 │   ├── generate_data.py
 │   ├── train_cv.py
