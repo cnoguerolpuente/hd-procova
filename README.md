@@ -64,6 +64,3 @@ hd-procova/
 
 - Python ≥ 3.10
 - PyMC ≥ 5.10 with NumPyro backend
-- See `pyproject.toml` for full dependency list
-
-GPU acceleration (optional): install JAX with CUDA support for 10–20x faster MCMC sampling.
