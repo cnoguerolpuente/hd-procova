@@ -2,9 +2,8 @@ import os
 
 CONFIG = {
     "random_state": 42,
-    "inner_cv_folds": 5,
-    "optuna_trials": 30,
-    "scoring_metric": "neg_mean_squared_error",
+    "inner_cv_folds": 3,
+    "optuna_trials": 20,
     "output_dir": os.path.join(os.path.dirname(os.path.dirname(__file__)), "outputs"),
 }
 
@@ -34,87 +33,93 @@ MODEL_MAP = {
 
 
 def param_space_lasso(trial):
-    return {"alpha": trial.suggest_float("alpha", 1e-6, 1.0, log=True)}
+    return {
+        "alpha": trial.suggest_float("alpha", 1e-4, 10.0, log=True),
+        "random_state": CONFIG["random_state"],
+    }
 
 
 def param_space_ridge(trial):
-    return {"alpha": trial.suggest_int("alpha", 0.1, 10)}
+    return {
+        "alpha": trial.suggest_float("alpha", 1e-3, 1e5, log=True),
+        "random_state": CONFIG["random_state"],
+    }
 
 
 def param_space_elasticnet(trial):
     return {
-        "alpha": trial.suggest_float("alpha", 1e-6, 1.0, log=True),
-        "l1_ratio": trial.suggest_float("l1_ratio", 0.01, 1.0, step=0.1),
+        "alpha": trial.suggest_float("alpha", 1e-3, 10.0, log=True),
+        "l1_ratio": trial.suggest_float("l1_ratio", 0.05, 0.95),
+        "random_state": CONFIG["random_state"],
     }
 
 
 def param_space_svr(trial):
     return {
-        "C": trial.suggest_float("C", 0.001, 10, log=True),
-        "epsilon": trial.suggest_float("epsilon", 0.01, 0.5, step=0.01),
-        "random_state": CONFIG["random_state"],
+        "C": trial.suggest_float("C", 1e-4, 10.0, log=True),
+        "epsilon": trial.suggest_float("epsilon", 0.01, 5, log=True),
         "max_iter": 30000,
         "tol": 1e-4,
+        "random_state": CONFIG["random_state"],
     }
 
 
 def param_space_decision_tree(trial):
     return {
-        "max_depth": trial.suggest_int("max_depth", 1, 10),
-        "min_samples_split": trial.suggest_categorical(
-            "min_samples_split", [2, 5, 10]
-        ),
-        "min_samples_leaf": trial.suggest_categorical(
-            "min_samples_leaf", [5, 10, 20, 50, 100]
-        ),
+        "max_depth": trial.suggest_int("max_depth", 2, 12),
+        "min_samples_split": trial.suggest_int("min_samples_split", 2, 30),
+        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 30),
+        "random_state": CONFIG["random_state"],
     }
 
 
 def param_space_random_forest(trial):
     return {
+        "n_estimators": 300,
+        "max_depth": trial.suggest_int("max_depth", 5, 20),
+        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
+        "max_features": 0.5,
+        "n_jobs": 1,
         "random_state": CONFIG["random_state"],
-        "n_jobs": -1,
-        "n_estimators": trial.suggest_int("n_estimators", 50, 200),
-        "max_depth": trial.suggest_int("max_depth", 5, 12),
-        "min_samples_split": trial.suggest_int("min_samples_split", 5, 20),
-        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 2, 10),
-        "max_features": trial.suggest_categorical("max_features", ["sqrt", "log2"]),
     }
 
 
 def param_space_xgboost(trial):
     return {
         "tree_method": "hist",
-        "n_jobs": -1,
-        "n_estimators": trial.suggest_int("n_estimators", 50, 400),
+        "n_estimators": 500,
+        "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
         "max_depth": trial.suggest_int("max_depth", 3, 8),
-        "subsample": trial.suggest_float("subsample", 0.6, 1.0),
-        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
-        "learning_rate": trial.suggest_float("learning_rate", 0.05, 0.3, log=True),
+        "subsample": trial.suggest_float("subsample", 0.2, 1.0),
+        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+        "n_jobs": 1,
+        "random_state": CONFIG["random_state"],
     }
 
 
 def param_space_lightgbm(trial):
     return {
-        "random_state": CONFIG["random_state"],
-        "n_jobs": -1,
-        "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
-        "learning_rate": trial.suggest_float("learning_rate", 0.005, 0.2, log=True),
-        "max_depth": trial.suggest_int("max_depth", 3, 12),
-        "num_leaves": trial.suggest_int("num_leaves", 8, 128),
-        "min_child_samples": trial.suggest_int("min_child_samples", 10, 100),
-        "subsample": trial.suggest_float("subsample", 0.6, 1.0),
-        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
+        "n_estimators": 500,
+        "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
+        "num_leaves": trial.suggest_int("num_leaves", 15, 60),
+        "min_child_samples": trial.suggest_int("min_child_samples", 10, 50),
+        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+        "max_depth": -1,
         "verbosity": -1,
+        "n_jobs": 1,
+        "random_state": CONFIG["random_state"],
     }
 
 
 def param_space_histgradientboosting(trial):
     return {
+        "early_stopping": True,
+        "n_iter_no_change": 10,
+        "max_iter": 500,
+        "learning_rate": trial.suggest_float("learning_rate", 0.02, 0.2, log=True),
+        "max_leaf_nodes": trial.suggest_int("max_leaf_nodes", 15, 31),
+        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 10, 50),
         "random_state": CONFIG["random_state"],
-        "max_iter": trial.suggest_int("max_iter", 100, 1000),
-        "max_depth": trial.suggest_int("max_depth", 1, 10),
-        "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.5, log=True),
     }
 
 

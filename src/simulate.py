@@ -6,7 +6,7 @@ from scipy.stats import norm, pearsonr
 
 def generate_longitudinal_structure(
     n_individuals: int = 1000,
-    min_timepoints: int = 1,
+    min_timepoints: int = 2,
     max_timepoints: int = 10,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     n_timepoints = np.random.randint(min_timepoints, max_timepoints + 1, n_individuals)
@@ -79,7 +79,7 @@ def calculate_observed_changes(r: np.ndarray, t: np.ndarray) -> np.ndarray:
 
 def create_simulated_dataset(
     n_individuals: int = 1000,
-    min_timepoints: int = 1,
+    min_timepoints: int = 2,
     max_timepoints: int = 10,
     n_irrelevant: int = 30,
     n_relevant: int = 20,
@@ -103,23 +103,8 @@ def create_simulated_dataset(
             "x0": x0_array,
             "x": x_array,
             "time": t_array,
-            "NVISIT": t_array.astype(int),
         }
     )
-
-    # Add AVISIT labels (BASELINE row + visit labels)
-    df["AVISIT"] = "VISIT_" + df["NVISIT"].astype(str)
-
-    # Add baseline rows (one per patient, NVISIT=0, x=x0)
-    baseline = df.groupby("id").first().reset_index()
-    baseline["x"] = baseline["x0"]
-    baseline["time"] = 0.0
-    baseline["NVISIT"] = 0
-    baseline["AVISIT"] = "BASELINE"
-
-    df = pd.concat([baseline, df], ignore_index=True).sort_values(
-        ["id", "NVISIT"]
-    ).reset_index(drop=True)
 
     df = df.merge(covariate_df, on="id", how="left")
 

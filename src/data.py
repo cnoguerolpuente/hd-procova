@@ -28,23 +28,6 @@ def setup_logging(fold_idx: int, model_name: str) -> logging.Logger:
     return logger
 
 
-def load_data(path: str) -> pd.DataFrame:
-    """Load a simulated dataset CSV and prepare it for the pipeline.
-
-    Expects columns: id, x0, x, time, NVISIT, AVISIT, plus covariate columns.
-    """
-    df = pd.read_csv(path)
-
-    if "ID" in df.columns and "id" not in df.columns:
-        df.rename(columns={"ID": "id"}, inplace=True)
-
-    if "time" not in df.columns and "NVISIT" in df.columns:
-        df["time"] = df["NVISIT"].astype(float)
-
-    print(f"Loaded {len(df)} rows, {df['id'].nunique()} patients from {path}")
-    return df
-
-
 def scale_pipeline_data(train_data: pd.DataFrame) -> tuple[dict, list, list]:
     """Fit scalers on train_data and add scaled columns in-place.
 
@@ -60,7 +43,7 @@ def scale_pipeline_data(train_data: pd.DataFrame) -> tuple[dict, list, list]:
         "progression_rates": StandardScaler(),
     }
 
-    non_covariate_cols = {"id", "time", "x0", "x", "STATUS", "AVISIT", "NVISIT"}
+    non_covariate_cols = {"id", "time", "x0", "x"}
     covariate_cols: list = [
         col for col in train_data.columns if col not in non_covariate_cols
     ]
@@ -79,25 +62,3 @@ def scale_pipeline_data(train_data: pd.DataFrame) -> tuple[dict, list, list]:
     train_data["time_scaled"] = scalers["time"].fit_transform(train_data[["time"]])
 
     return scalers, covariate_cols, scaled_covariate_cols
-
-
-def remove_baseline_visits(
-    train_data: pd.DataFrame,
-    test_data: pd.DataFrame,
-    drop_test_avisit: bool = True,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Drop BASELINE rows and the AVISIT column from both DataFrames."""
-    if "AVISIT" not in train_data.columns:
-        return train_data, test_data
-
-    train_data.drop(
-        train_data[train_data["AVISIT"] == "BASELINE"].index, inplace=True
-    )
-    test_data.drop(
-        test_data[test_data["AVISIT"] == "BASELINE"].index, inplace=True
-    )
-    train_data.drop(columns=["AVISIT"], inplace=True)
-    if drop_test_avisit:
-        test_data.drop(columns=["AVISIT"], inplace=True)
-
-    return train_data, test_data

@@ -54,20 +54,27 @@ import arviz as az
 from matplotlib import pyplot as plt
 
 
-def _effective_hbm_chains(requested_chains: int, logger=None) -> int:
-    requested = max(1, int(requested_chains))
-    if logger is not None:
-        logger(f"Using {requested} vectorized chain(s).")
-    return requested
+def check_convergence(
+    trace, var_names=None, rhat_thresh=1.05, ess_thresh=400
+) -> Tuple[bool, float, float]:
+    """Check MCMC convergence via R-hat and ESS."""
+    summary = az.summary(trace, var_names=var_names, kind="diagnostics")
+    max_rhat = summary["r_hat"].max()
+    min_ess_bulk = summary["ess_bulk"].min()
+    min_ess_tail = summary["ess_tail"].min()
 
+    convergence = (max_rhat < rhat_thresh) and (min_ess_bulk > ess_thresh) and (min_ess_tail > ess_thresh)
+
+    if not convergence:
+        print(f"Warning: HBM did not converge (R-hat: {max_rhat:.3f}, ESS bulk: {min_ess_bulk}, ESS tail: {min_ess_tail})")
 
 def fit_hierarchical_bayesian(
     train_data_fold: pd.DataFrame,
     n_patients_fold: int,
     random_state: int,
-    hbm_samples: int = 500,
-    hbm_tune: int = 500,
-    hbm_chains: int = 2,
+    hbm_samples: int,
+    hbm_tune: int,
+    hbm_chains: int,
     hbm_cores: int = 1,
 ) -> Tuple[np.ndarray, float, float, az.InferenceData]:
     """Fit the PyMC HBM and extract per-patient progression rates."""
@@ -81,17 +88,15 @@ def fit_hierarchical_bayesian(
     x0_obs = x0_by_patient[id_code]
     time_scaled = train_data_fold["time_scaled"].to_numpy(dtype=np.float64)
     x_scaled_obs = train_data_fold["x_scaled"].to_numpy(dtype=np.float64)
-    effective_chains = _effective_hbm_chains(hbm_chains)
 
     with pm.Model():
         mu_beta = pm.Normal("mu_beta", mu=0, sigma=1)
         sigma_beta = pm.HalfNormal("sigma_beta", sigma=1)
         gamma0 = pm.TruncatedNormal("gamma0", mu=1, sigma=0.5, lower=0)
 
-        beta_raw = pm.Normal("beta_raw", mu=0, sigma=1, shape=n_patients_fold)
-        beta = pm.Deterministic("beta", mu_beta + beta_raw * sigma_beta)
+        beta_i = pm.Normal("beta_i", mu=mu_beta, sigma=sigma_beta, shape=n_patients_fold)
 
-        progression_rate_i = beta[id_code]
+        progression_rate_i = beta_i[id_code]
         mu = gamma0 * x0_obs + progression_rate_i * time_scaled
 
         sigma_obs = pm.HalfNormal("sigma_obs", sigma=0.5)
@@ -100,8 +105,8 @@ def fit_hierarchical_bayesian(
         trace = pm.sample(
             draws=hbm_samples,
             tune=hbm_tune,
-            chains=effective_chains,
-            cores=1,
+            chains=hbm_chains,
+            cores=hbm_cores,
             random_seed=random_state,
             target_accept=0.8,
             nuts_sampler="numpyro",
@@ -109,67 +114,9 @@ def fit_hierarchical_bayesian(
             return_inferencedata=True,
         )
 
-    beta_values = trace.posterior["beta"].mean(dim=("chain", "draw")).values
-    gamma0_val = trace.posterior["gamma0"].mean(dim=("chain", "draw")).values
-    sigma_beta_values = trace.posterior["beta"].std(dim=("chain", "draw")).values
+    beta_values = trace.posterior["beta_i"].mean(dim=("chain", "draw")).values
+    sigma_beta_values = trace.posterior["beta_i"].std(dim=("chain", "draw")).values
 
-    return beta_values, sigma_beta_values, gamma0_val, trace
+    check_convergence(trace, var_names=["mu_beta", "sigma_beta", "gamma0", "sigma_obs", "beta_i"])
 
-
-def check_convergence(
-    trace, var_names=None, rhat_thresh=1.05, ess_thresh=400
-) -> Tuple[bool, float, float]:
-    """Check MCMC convergence via R-hat and ESS."""
-    summary = az.summary(trace, var_names=var_names, kind="diagnostics")
-    max_rhat = summary["r_hat"].max()
-    min_ess = summary["ess_bulk"].min()
-
-    n_chains = int(trace.posterior.sizes.get("chain", 1))
-    if n_chains < 2 or np.isnan(max_rhat):
-        convergence = min_ess > ess_thresh
-    else:
-        convergence = (max_rhat < rhat_thresh) and (min_ess > ess_thresh)
-    return convergence, max_rhat, min_ess
-
-
-def save_hbm_convergence_plot(
-    trace, output_dir: str, fold_idx: int = None
-):
-    """Save MCMC diagnostic trace plots."""
-    plots_dir = os.path.join(output_dir, "plots")
-    os.makedirs(plots_dir, exist_ok=True)
-
-    if fold_idx is not None:
-        title_prefix = f"Fold {fold_idx}: "
-        file_prefix = f"fold_{fold_idx}_"
-    else:
-        title_prefix = ""
-        file_prefix = ""
-
-    hyper_params = ["sigma_obs", "gamma0", "mu_beta", "sigma_beta"]
-    num_hyper = len(hyper_params)
-
-    total_rows = num_hyper + 1
-    fig, axes = plt.subplots(total_rows, 2, figsize=(12, 2 * total_rows))
-
-    az.plot_trace(
-        trace, var_names=hyper_params, axes=axes[:num_hyper, :], compact=True
-    )
-
-    beta_indices = np.arange(5)
-    coords = {"beta_dim_0": beta_indices}
-    az.plot_trace(
-        trace, var_names=["beta"], coords=coords,
-        axes=axes[num_hyper:, :], compact=True,
-    )
-
-    fig.suptitle(
-        f"{title_prefix}HBM Trace and Posterior Plots", fontsize=16, y=1.001
-    )
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(plots_dir, f"{file_prefix}trace.png"),
-        dpi=150, bbox_inches="tight", facecolor="white",
-    )
-    plt.close(fig)
-    print(f"Saved diagnostic plot to {plots_dir}")
+    return beta_values, sigma_beta_values

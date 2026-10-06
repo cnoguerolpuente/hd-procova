@@ -1,16 +1,16 @@
 # PROCOVA for Huntington's Disease
 
-Prognostic covariate adjustment pipeline for Huntington's Disease clinical trial design.
-
 This pipeline trains machine learning models on longitudinal data to predict individual disease progression rates, which can then be used as prognostic covariates in clinical trial analysis frameworks (e.g., MMRM) to improve statistical power.
 
 ## Method
 
-**Step 1 — Hierarchical Bayesian Model (HBM):**
-fits a random-slope linear mixed model via MCMC (PyMC/NumPyro) to extract per-patient progression rates from longitudinal clinical scores. Sampling uses NUTS (500 draws, 500 tuning steps, 2 chains, target acceptance 0.8). Convergence is verified via R-hat (< 1.05) and bulk ESS (> 400).
+**Step 1 — Progression Rate Estimation:**
+fits a random-slope linear mixed model to extract per-patient progression rates from longitudinal clinical scores.
 
-**Step 2 — Machine Learning Models:**
-trains 9 supervised regressors (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) to predict the estimated progression rate from baseline covariates. Hyperparameters are tuned via Optuna (30 trials, 5-fold inner CV, MSE scoring).
+Progression Rate Estimation. Hierarchical Bayesian linear regression over observed clinical scores to estimate individual annual progression rates for 5 UHDRS endpoints.  
+
+**Step 2 — Progression Rate Prediction:**
+trains 9 supervised regressors (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) to predict the progression rates estimated in Step 1 using from baseline covariates.
 
 ![Pipeline overview](images/pipeline.png)
 
@@ -19,16 +19,14 @@ trains 9 supervised regressors (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Ra
 ```bash
 # Install dependencies
 pip install -e .
-# or with uv:
-uv sync
 
 # Generate simulated data
 python scripts/generate_data.py
 
-# Run cross-validation (fold 1 of 100)
-python scripts/train_cv.py 1
+# Run cross-validation 
+python scripts/train_cv.py 
 
-# Train final models on all training data
+# Train final model
 python scripts/train_final.py
 ```
 
@@ -50,7 +48,10 @@ hd-procova/
     └── figures.ipynb    # Result visualizations
 ```
 
-## Data simulation
+
+## Pipeline details
+
+### 0. Data simulation
 
 The simulated data mimics the structure of longitudinal clinical trial data. Each individual *i* has a random number of follow-up visits (1–10) and a baseline score *x₀ᵢ* drawn uniformly from {0, …, 20}.
 
@@ -72,9 +73,7 @@ from src.simulate import create_simulated_dataset
 df = create_simulated_dataset(n_individuals=1000)
 ```
 
-## Pipeline details
-
-### Cross-validation (`train_cv.py`)
+### 1. Cross-validation (`train_cv.py`)
 
 Implements 10x10 repeated cross-validation (10 repetitions of 10-fold outer CV) on 800 training individuals (200 held out as final test set). Each fold:
 1. Splits patients into train/validation (patient-level, no leakage)
@@ -90,7 +89,7 @@ python scripts/train_cv.py 1
 for i in $(seq 1 100); do python scripts/train_cv.py $i; done
 ```
 
-### Final model (`train_final.py`)
+### 2. Final model (`train_final.py`)
 
 Trains on the complete training set and evaluates on the held-out test set. Saves fitted models, scalers, and deployment artefacts.
 

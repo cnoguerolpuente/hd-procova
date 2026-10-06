@@ -8,22 +8,18 @@ import pandas as pd
 import warnings
 
 RANDOM_STATE = CONFIG["random_state"]
-SCORING = CONFIG["scoring_metric"]
-
 
 def hyperparameter_tuning_weighted(
     X, y, model_class, param_space_fn, model_name,
-    inner_cv, scoring, n_trials, sample_weights,
+    inner_cv, n_trials, sample_weights, output_dir,
 ):
     """Hyperparameter tuning via Optuna with precision-weighted CV."""
     warnings.filterwarnings("ignore", category=UserWarning, module="joblib")
 
     study = optuna.create_study(
-        direction="maximize",
+        direction="minimize",
         sampler=optuna.samplers.TPESampler(seed=RANDOM_STATE),
     )
-
-    scoring = (scoring or "neg_mean_squared_error").lower()
 
     def objective(trial):
         params = param_space_fn(trial)
@@ -43,27 +39,12 @@ def hyperparameter_tuning_weighted(
             fold_model.fit(X_train_fold, y_train_fold, sample_weight=w_train_fold)
             y_pred = fold_model.predict(X_val_fold)
 
-            if scoring == "neg_mean_squared_error":
-                fold_score = -mean_squared_error(y_val_fold, y_pred)
-            elif scoring == "r2":
-                fold_score = r2_score(y_val_fold, y_pred)
-            elif scoring in ("pearson", "pearson_correlation", "corr", "correlation"):
-                y_val_std = np.std(y_val_fold)
-                y_pred_std = np.std(y_pred)
-                if y_val_std < 1e-12 or y_pred_std < 1e-12:
-                    fold_score = 0.0
-                else:
-                    fold_score = float(np.corrcoef(y_val_fold, y_pred)[0, 1])
-                    if not np.isfinite(fold_score):
-                        fold_score = 0.0
-            else:
-                raise ValueError(f"Unsupported scoring metric: {scoring}")
-
+            fold_score = mean_squared_error(y_val_fold, y_pred)
             cv_scores.append(fold_score)
 
         mean_score = float(np.nanmean(cv_scores))
         if not np.isfinite(mean_score):
-            mean_score = -1e12
+            mean_score = 1e12
         return mean_score
 
     study.optimize(objective, n_trials=n_trials, n_jobs=1)
@@ -71,7 +52,7 @@ def hyperparameter_tuning_weighted(
     best_params = study.best_params
     best_score = study.best_value
 
-    print(f"Tuning complete for {model_name.upper()} | Best score ({scoring}): {best_score:.4f}")
+    print(f"Tuning complete for {model_name.upper()} | Best score: {best_score:.4f}")
     print(f"Best hyperparameters: {best_params}")
 
     return best_params, best_score, study
