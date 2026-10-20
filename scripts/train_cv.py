@@ -33,7 +33,7 @@ def main(fold_idx):
 
     repetition = fold_idx // 10
     fold_within_rep = fold_idx % 10
-    print(f"REPETITION {repetition + 1}/10, FOLD {fold_within_rep + 1}/10 (global {fold_idx + 1}/20)")
+    print(f"REPETITION {repetition + 1}/10, FOLD {fold_within_rep + 1}/10 (global {fold_idx + 1}/100)")
 
     outer_cv = KFold(n_splits=10, shuffle=True, random_state=random_state + repetition)
     train_idx, val_idx = list(outer_cv.split(patient_ids))[fold_within_rep]
@@ -67,8 +67,8 @@ if __name__ == "__main__":
         import multiprocessing
         ctx = multiprocessing.get_context("spawn")
         with ProcessPoolExecutor(max_workers=args.n_jobs, mp_context=ctx) as executor:
-            list(executor.map(main, range(20)))
+            list(executor.map(main, range(100)))
     else:
-        for fold_idx in range(20):
-            print(f"Starting fold {fold_idx + 1}/20")
+        for fold_idx in range(100):
+            print(f"Starting fold {fold_idx + 1}/100")
             main(fold_idx)
