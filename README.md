@@ -1,10 +1,10 @@
-# PROCOVA for Huntington's Disease
+# Quantifying statistical power gains from prognostic modeling in Huntington’s Disease
 
-This pipeline trains machine learning models on longitudinal data to predict individual disease progression rates, which can then be used as prognostic covariates in clinical trial analysis frameworks (e.g., MMRM) to improve statistical power.
+This repository contains the code supporting the paper “Quantifying statistical power gains from prognostic modeling in Huntington’s Disease.” The pipeline trains machine learning models on longitudinal data to predict individual disease progression rates, which can then be used as prognostic covariates in clinical trial analyses (e.g., MMRM) to improve statistical power.
 
 ## How it works
 
-**Step 1 - Estimate progression rates.** Fits a hierarchical Bayesian model to extract a per-patient annual progression rate.
+**Step 1 - Estimate progression rates.** Fits a hierarchical Bayesian model to extract a per-patient progression rate.
 
 **Step 2 - Predict progression rates from baseline.** Trains nine Machine Learning models (Lasso, Ridge, ElasticNet, SVR, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting) to predict those rates using only baseline covariates.
 

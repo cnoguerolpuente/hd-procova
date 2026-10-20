@@ -11,7 +11,7 @@ LINEAR_MODELS = ['lasso', 'ridge', 'elasticnet', 'svr']
 MODEL_PRETTY = {
     'lasso': 'Lasso', 'ridge': 'Ridge', 'elasticnet': 'ElasticNet', 'svr': 'SVR',
     'decision_tree': 'Decision Tree', 'random_forest': 'Random Forest',
-    'xgboost': 'XGBoost', 'lightgbm': 'LightGBM', 'histgradientboosting': 'Hist GBT',
+    'xgboost': 'XGBoost', 'lightgbm': 'LightGBM', 'histgradientboosting': 'HistGradientBoosting',
 }
 
 FILL_COLOR = {'Linear': '#4A89BC', 'Non-Linear': '#E87D3E'}
@@ -19,7 +19,7 @@ EDGE_COLOR = {'Linear': '#2E6A9E', 'Non-Linear': '#C05A1F'}
 
 MODEL_PALETTE = sns.color_palette("coolwarm", 9).as_hex()
 
-FIG_W, FIG_H = 6, 4
+FIG_W, FIG_H = 6, 5
 
 
 def _r2(d):
@@ -65,7 +65,7 @@ def _two_tone_box(ax, bp, fc, ec, box_w, j):
     return med
 
 
-def plot_r2_by_model(cv_df, final_df=None, save=False):
+def plot_r2_by_model(cv_df, final_df=None, SELECTED_TIME=None, save=False):
     fold_r2 = (
         cv_df.groupby(['model', 'fold'])
         .apply(_r2, include_groups=False)
@@ -111,12 +111,14 @@ def plot_r2_by_model(cv_df, final_df=None, save=False):
         ax.scatter(j + jit, vals, s=6, color=ec, alpha=0.4, zorder=5)
 
         if has_final and model in final_r2.index:
-            ax.scatter(j, final_r2[model], marker='D', s=30, color='#222',
-                       zorder=7, label='Final model' if j == 0 else '_')
+            ax.scatter(j, final_r2[model], marker='x', s=25, color='black',
+                       zorder=7, label='Final model' if j == 0 else '_', linewidth=1)
 
     ax.set_xticks(range(len(ordered)))
     ax.set_xticklabels([MODEL_PRETTY.get(m, m) for m in ordered], rotation=40, ha='right')
     ax.set_ylabel('R²', labelpad=6)
+    title = r"$\mathbf{R^2\ by\ model}$"
+    ax.set_title(f"{title}\n(Time {SELECTED_TIME})", fontsize=12, pad=12)
     ax.yaxis.grid(True, linestyle='--', alpha=0.3, linewidth=0.5)
     _apply_spine_style(ax)
 
@@ -127,18 +129,18 @@ def plot_r2_by_model(cv_df, final_df=None, save=False):
     ]
     if has_final:
         legend_handles.append(
-            Line2D([0], [0], marker='D', color='#222', linestyle='None',
+            Line2D([0], [0], marker='x', color='#222', linestyle='None',
                    markersize=5, label='Final model')
         )
-    ax.legend(handles=legend_handles, frameon=False, fontsize=9, loc='upper right')
+    fig.legend(handles=legend_handles, ncol=3, frameon=False, fontsize=9, loc='lower center', bbox_to_anchor=(0.56, 0.0))
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.06, 1, 1])
     if save:
         fig.savefig('r2_by_model.pdf', bbox_inches='tight', dpi=300)
     plt.show()
 
 
-def plot_r2_over_time(cv_df, final_df=None, save=False):
+def plot_r2_over_time(cv_df, save=False):
     fold_time_r2 = (
         cv_df.groupby(['model', 'fold', 'time'])
         .apply(_r2, include_groups=False)
@@ -151,22 +153,10 @@ def plot_r2_over_time(cv_df, final_df=None, save=False):
         .rename(columns={'mean': 'r2_mean', 'std': 'r2_std'})
     )
 
-    has_final = (
-        final_df is not None
-        and not final_df.empty
-        and 'actual_change' in final_df.columns
-    )
-    if has_final:
-        final_time_r2 = (
-            final_df.groupby(['model', 'time'])
-            .apply(_r2, include_groups=False)
-            .reset_index(name='r2')
-        )
-
     all_models = sorted(cv_df['model'].unique())
     colors = dict(zip(all_models, MODEL_PALETTE[:len(all_models)]))
 
-    fig, ax = plt.subplots(figsize=(FIG_W, FIG_H))
+    fig, ax = plt.subplots(figsize=(FIG_W, FIG_H * 1.2))
 
     for model in all_models:
         mdf = time_r2[time_r2['model'] == model].sort_values('time')
@@ -178,30 +168,17 @@ def plot_r2_over_time(cv_df, final_df=None, save=False):
                         mdf['r2_mean'] + mdf['r2_std'],
                         alpha=0.10, color=color)
 
-        if has_final:
-            fdf = final_time_r2[final_time_r2['model'] == model].sort_values('time')
-            if not fdf.empty:
-                ax.plot(fdf['time'], fdf['r2'], color=color, linestyle='--',
-                        marker='o', markersize=4, linewidth=1.2, zorder=4, label='_')
-
-    ax.set_xlabel('Time (years)', fontsize=10)
+    ax.set_xlabel('Time', fontsize=10)
     ax.set_ylabel('R²', fontsize=10, labelpad=6)
+    title = r"$\mathbf{R^2\ over\ time}$"
+    ax.set_title(f"{title}\n(CV results)", fontsize=12, pad=12)
     ax.xaxis.grid(True, linestyle='-', alpha=0.5, linewidth=0.5)
     ax.yaxis.grid(True, linestyle='-', alpha=0.5, linewidth=0.5)
     _apply_spine_style(ax)
 
-    model_handles, model_labels = ax.get_legend_handles_labels()
-    if has_final:
-        style_handles = [
-            Line2D([0], [0], color='#555', linewidth=1.6, linestyle='-',
-                   marker='o', markersize=4, label='CV (mean ± std)'),
-            Line2D([0], [0], color='#555', linewidth=1.2, linestyle='--',
-                   marker='o', markersize=4, label='Final model'),
-        ]
-        ax.legend(handles=model_handles + style_handles, frameon=False, fontsize=9, ncol=2)
-    else:
-        ax.legend(frameon=False, fontsize=9, ncol=2)
-
+    ax.legend(frameon=False, fontsize=9, ncol=3,
+        loc='upper center', bbox_to_anchor=(0.45, -0.15))
+        
     plt.tight_layout()
     if save:
         fig.savefig('r2_over_time.pdf', bbox_inches='tight', dpi=300)
@@ -238,7 +215,8 @@ def plot_feature_importance(imp_df, model, top_n=20, save=False):
     ax.xaxis.grid(True, linestyle='--', alpha=0.3, linewidth=0.5)
     ax.axvline(0, color='#808080', linewidth=0.7)
     _apply_spine_style(ax)
-    ax.set_title(MODEL_PRETTY.get(model, model), fontsize=10, pad=6)
+    title = r"$\mathbf{Feature\ Importance}$"
+    ax.set_title(f"{title}\n({MODEL_PRETTY.get(model, model)})", fontsize=10, pad=6)
 
     plt.tight_layout()
     if save:

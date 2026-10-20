@@ -13,6 +13,7 @@ import sys
 
 import joblib
 import numpy as np
+import pandas as pd
 import pytensor
 from sklearn.metrics import r2_score
 
@@ -20,7 +21,7 @@ pytensor.config.cxx = ""
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.config import CONFIG
-from src.data import load_data, remove_baseline_visits, scale_pipeline_data
+from src.data import scale_pipeline_data
 from src.pipeline import fit_hbm, train_ml_models
 
 random_state = CONFIG.get("random_state", 42)
@@ -29,8 +30,8 @@ np.random.seed(random_state)
 
 def train_final_model():
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-    train_data = load_data(os.path.join(data_dir, "train.csv"))
-    test_data = load_data(os.path.join(data_dir, "test.csv"))
+    train_data = pd.read_csv(os.path.join(data_dir, "train.csv"))
+    test_data = pd.read_csv(os.path.join(data_dir, "test.csv"))
 
     scalers, covariate_cols, scaled_covariate_cols = scale_pipeline_data(train_data)
 

@@ -33,12 +33,12 @@ def main(fold_idx):
 
     repetition = fold_idx // 10
     fold_within_rep = fold_idx % 10
-    print(f"REPETITION {repetition + 1}/10, FOLD {fold_within_rep + 1}/10 (global {fold_idx + 1}/100)")
+    print(f"REPETITION {repetition + 1}/10, FOLD {fold_within_rep + 1}/10 (global {fold_idx + 1}/20)")
 
     outer_cv = KFold(n_splits=10, shuffle=True, random_state=random_state + repetition)
     train_idx, val_idx = list(outer_cv.split(patient_ids))[fold_within_rep]
     train_data = score_data[score_data["id"].isin(patient_ids[train_idx])].copy()
-    test_data = score_data[score_data["id"].isin(patient_ids[val_idx])].copy()
+    val_data = score_data[score_data["id"].isin(patient_ids[val_idx])].copy()
 
     scalers, covariate_cols, scaled_covariate_cols = scale_pipeline_data(train_data)
 
@@ -50,7 +50,7 @@ def main(fold_idx):
     patient_level = train_data.groupby("id").first()
 
     train_ml_models(
-        patient_level, test_data, scalers, covariate_cols, scaled_covariate_cols,
+        patient_level, val_data, scalers, covariate_cols, scaled_covariate_cols,
         output_dir, random_state, fold_suffix=f"_fold_{fold_idx + 1}",
     )
 
@@ -67,8 +67,8 @@ if __name__ == "__main__":
         import multiprocessing
         ctx = multiprocessing.get_context("spawn")
         with ProcessPoolExecutor(max_workers=args.n_jobs, mp_context=ctx) as executor:
-            list(executor.map(main, range(100)))
+            list(executor.map(main, range(20)))
     else:
-        for fold_idx in range(100):
-            print(f"Starting fold {fold_idx + 1}/100")
+        for fold_idx in range(20):
+            print(f"Starting fold {fold_idx + 1}/20")
             main(fold_idx)
